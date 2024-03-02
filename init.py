@@ -7,6 +7,9 @@ from gym import spaces
 
 print(tf.__version__)
 
+# It seems that this reinforcement learning library is not quite right.
+# - Gavin, 3/2/2024
+
 from rl.agents import DQNAgent
 from rl.memory import SequentialMemory
 from rl.policy import EpsGreedyQPolicy
