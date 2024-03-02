@@ -5,10 +5,12 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 
+
 class KillerSudokuEnv(gym.Env):
     """
     Custom environment for Killer Sudoku that follows gym interface.
     """
+
     def __init__(self):
         super(KillerSudokuEnv, self).__init__()
         # Define action and observation space
@@ -30,17 +32,20 @@ class KillerSudokuEnv(gym.Env):
         # Render the environment to the screen
         pass
 
+
 class DQNAgent:
     """
     DQN Agent that learns to solve Killer Sudoku.
     """
-    def __init__(self, env : KillerSudokuEnv):
+
+    def __init__(self, env: KillerSudokuEnv):
         self.env = env
         # Initialize your agent here
 
     def learn(self):
         # Learning process
         pass
+
 
 def main():
     # Create environment
@@ -51,6 +56,7 @@ def main():
 
     # Train the agent
     agent.learn()
+
 
 if __name__ == '__main__':
     main()
