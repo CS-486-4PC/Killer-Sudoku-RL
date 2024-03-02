@@ -34,7 +34,7 @@ class DQNAgent:
     """
     DQN Agent that learns to solve Killer Sudoku.
     """
-    def __init__(self, env):
+    def __init__(self, env : KillerSudokuEnv):
         self.env = env
         # Initialize your agent here
 
