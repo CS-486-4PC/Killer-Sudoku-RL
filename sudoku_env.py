@@ -1,35 +1,48 @@
 import gym
-from gym.spaces import Discrete, Box
+from gym.spaces import Discrete, Box, Tuple
 import random
+import typing
 
-from sudoku import Grid, generateGrid
+from sudoku import KSudoku
 
+Action = typing.Tuple[int, int, int]
 
-N_BOXES = 9  # 9 3x3 boxes
-SIZE = 9  # 9x9 grid
-SEED = 42
 
 class KillerSudokuEnv(gym.Env):
-    def __init__(self, size=SIZE):
-        self.size = size
-        # action_space: 9 actions, 1-9
-        self.action_space = Discrete(9, start=1)
+    def __init__(self):
+        self.size = 9
+        self.seed = 42  # larger value means more cells are masked, hence more difficult
+        self.difficulty = 0.5
+        # action_space: (row, column, value)
+        self.action_space = gym.spaces.Tuple((
+            Discrete(self.size),            # row: 0-8
+            Discrete(self.size),            # column: 0-8
+            Discrete(self.size, start=1)    # value: 1-9
+        ))
         # observation_space: 9x9 grid, each cell has a value between 0-9 (0 = empty)
-        self.observation_space = Box(low=0, high=9, shape=(SIZE, SIZE), dtype=int)
-        self._setup_board(SEED)
+        self.observation_space = Box(low=0, high=9, shape=(self.size, self.size), dtype=int)
+        self._setup_board(self.seed, self.difficulty)
 
-    def step(self, action: int):
+    def step(self, action: Action):
         pass
 
     def reset(self, seed=None, options=None):
-        self._setup_board(seed)
+        self._setup_board(self.seed, self.difficulty)
         return self.grid
 
     def render(self, mode='human'):
         pass
 
-    def _setup_board(self, seed):
-        # TODO: difficulty (mask rate) can be a parameter
-        random.seed(seed)
-        mask_rate = random.uniform(0.1, 0.7)
-        self.grid, self.base = generateGrid(mask_rate, seed)
+    def _setup_board(self, seed, difficulty):
+        ks = KSudoku(seed, difficulty)
+        self.grid = ks.getGrid()
+        self.base = ks.getBase()
+
+
+if __name__ == "__main__":
+    env = KillerSudokuEnv()
+    env.reset()
+    assert env.grid is not None
+    for row in env.grid:
+        print(row)
+
