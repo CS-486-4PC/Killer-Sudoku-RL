@@ -28,8 +28,8 @@ class KillerSudokuEnv(gym.Env):
             Discrete(self.size),            # column: 0-8
             Discrete(self.size, start=1)    # value: 1-9
         ))
-        # number of actions: 9x9x9
-        self.nu
+        # number of actions: row * column * number = 9x9x9
+        self.num_actions = self.size ** 3
         # observation_space: 9x9 grid, each cell has a value between 0-9 (0 = empty)
         self.observation_space = Box(low=0, high=9, shape=(self.size, self.size), dtype=int)
         self._setup_board(self.seed, self.difficulty)
@@ -74,19 +74,18 @@ class KillerSudokuEnv(gym.Env):
 def main():
     # Create the environment
     env = KillerSudokuEnv()
-    nb_actions = env.action_space.shape  # TODO: wtf is this?
 
     # Neural Network model for Deep Q Learning
     model = keras.models.Sequential()
     model.add(keras.layers.Flatten(input_shape=(1, 9, 9)))  # Reshape for compatibility
     model.add(keras.layers.Dense(128, activation='relu'))
     model.add(keras.layers.Dense(128, activation='relu'))
-    model.add(keras.layers.Dense(env.action_space.n, activation='linear'))  # Output layer
+    model.add(keras.layers.Dense(env.num_actions, activation='linear'))  # Output layer
 
     # Configure and compile the DQN agent
     memory = SequentialMemory(limit=50000, window_length=1)
     policy = EpsGreedyQPolicy()
-    dqn = DQNAgent(model=model, nb_actions=env.action_space.n, memory=memory, nb_steps_warmup=10,
+    dqn = DQNAgent(model=model, nb_actions=env.num_actions, memory=memory, nb_steps_warmup=10,
                    target_model_update=1e-2, policy=policy)
     dqn.compile(keras.optimizers.Adam(lr=1e-3), metrics=['mae'])
 

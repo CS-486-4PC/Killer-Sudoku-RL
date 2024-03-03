@@ -1,12 +1,16 @@
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 import numpy as np
 import logging
 import copy
 import random
 
 Grid = List[List[int]]
+Cell = Tuple[int, int]
+# Cage = List[Cell]  # A cage is a group of cells that must sum to a certain value
+
 SEED = 42
 RATE = 0.5
+
 
 class KSudoku:
     def __init__(self, seed=SEED, mask_rate=RATE):
@@ -21,10 +25,13 @@ class KSudoku:
     def getBase(self) -> Grid:
         return self.base
 
-    def _generateGrid(self, base: Grid) -> Grid:
-        return self._mask(base)
+    def getCell(self, row: int, col: int) -> int:
+        return self.grid[row][col]
 
-    def _mask(self, grid) -> Grid:
+    def _generateGrid(self, baseGrid: Grid) -> Grid:
+        return self._mask(baseGrid)
+
+    def _mask(self, grid: Grid) -> Grid:
         """
         Return a masked grid (0 for masked cells, original value for the rest) with the given mask rate.
         :return: the masked grid
@@ -90,14 +97,52 @@ class KSudoku:
         return g_list
 
 
+class Cage:
+    def __init__(self):
+        self.cells: Optional[List[Cell]] = []
+        self._value: int = 0
+
+    def addCell(self, cell: Cell):
+        self.cells.append(cell)
+
+    def removeCell(self, cell: Cell):
+        self.cells.remove(cell)
+
+    def getValue(self) -> int:
+        self._computeValue()
+        return self._value
+
+    def _computeValue(self):
+        self._value = 0
+        for r, c in self.cells:
+            self._value += self.cells[r][c]
+
+class CageGenerator:
+    def __init__(self, grid: Grid):
+        self.grid = grid
+
+    def generateCages(self) -> List[Cage]:
+        """
+        Generate cages in the grid.
+        :return: the list of cages
+        :rtype: List[Cage]
+        """
+        pass
+
+
 if __name__ == "__main__":
-    ks = KSudoku()
-    grid = ks.getGrid()
-    for row in grid:
-        print(row)
+    # ks = KSudoku()
+    # g = ks.getGrid()
+    # for r in g:
+    #     print(r)
+    #
+    # print()
+    #
+    # b = ks.getBase()
+    # for r in b:
+    #     print(r)
 
-    print()
-
-    base = ks.getBase()
-    for row in base:
-        print(row)
+    cg = Cage()
+    cg.addCell((1, 2))
+    cg.addCell((3, 4))
+    print(cg.cells)
