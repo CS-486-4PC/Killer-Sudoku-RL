@@ -5,6 +5,11 @@ name = "pypi"
 
 [packages]
 gymnasium = "*"
+tensorflow = "*"
+numpy = "*"
+pandas = "*"
+matplotlib = "*"
+keras-rl2 = "*"
 
 [dev-packages]
 
