@@ -4,13 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-<<<<<<< HEAD
 gymnasium = "*"
 tensorflow = "*"
-=======
-tensorflow = "*"
-gym = "*"
->>>>>>> myfork/main
 numpy = "*"
 pandas = "*"
 matplotlib = "*"
@@ -20,7 +15,4 @@ keras-rl2 = "*"
 
 [requires]
 python_version = "3.10"
-<<<<<<< HEAD
 python_full_version = "3.10.6"
-=======
->>>>>>> myfork/main
