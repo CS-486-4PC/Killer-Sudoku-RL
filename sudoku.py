@@ -1,4 +1,4 @@
-from typing import Tuple, List, Optional
+from typing import Tuple, List
 import numpy as np
 import logging
 import copy
@@ -118,10 +118,17 @@ class Cage:
             self.value += baseGrid[row][col]
         return self.value
 
+
 class CageGenerator:
+    """
+    Generate cages in a given grid.
+    """
+
     def __init__(self, baseGrid: Grid):
         self.grid = baseGrid
         self.cages: List[Cage] = []
+        # initialize the list of unused cells
+        # will be updated as cages are generated
         self.unusedCells = [(r, c) for r in range(9) for c in range(9)]
 
     def generateCages(self) -> List[Cage]:
@@ -132,7 +139,7 @@ class CageGenerator:
         """
 
         while self.unusedCells:
-            cell = self._selectCell()
+            cell = self._selectStartingCell()
             size = self._selectSize(cell)
             cage = self._makeOneCage(cell, size)
             target = self._getCageTarget(cage)
@@ -143,7 +150,7 @@ class CageGenerator:
 
         return self.cages
 
-    def _selectCell(self) -> Tuple[int, int]:
+    def _selectStartingCell(self) -> Tuple[int, int]:
         """
         Select a cell to start a new cage.
         Top priority for a starting cell is that it is surrounded on 3 or 4 sides,
@@ -155,26 +162,34 @@ class CageGenerator:
             raise ValueError("no unused cells")
 
         for cell in self.unusedCells:
-            if self._getNumNeighbours(cell) == 3 or self._getNumNeighbours(cell) == 4:
+            numNeighbors, _ = self._getUnusedNeighbors(cell)
+            if numNeighbors == 3 or numNeighbors == 4:
                 return cell
 
         return random.choice(self.unusedCells)
 
-    def _getNumNeighbours(self, cell: Tuple[int, int]) -> int:
+    def _getUnusedNeighbors(self, cell: Tuple[int, int]) -> Tuple[int, List[Tuple[int, int]]]:
         """
-        Get the number of neighbours of the given cell.
+        Get the unused neighbours of the given cell.
         :param cell: the given cell
         :type cell: Tuple[int, int]
-        :return: the number of neighbours of the given cell
-        :rtype: int
+        :return: the number and the list of unused neighbours
+        :rtype: Tuple[int, List[Tuple[int, int]]]
         """
-        pass
+        row, col = cell
+        unusedNeighbors = []
+
+        # check the 4 neighbours: up, down, left, right
+        for deltaRow, deltaCol in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            neighbor = (row + deltaRow, col + deltaCol)
+            
+
 
     def _selectSize(self, cell: Tuple[int, int]) -> int:
         """
         Select the size of a new cage.
         A cell surrounded on 4 sides must become a single-cell cage.
-        choosing a cell surrounded on three sides allows the cage to occupy and
+        Choosing a cell surrounded on three sides allows the cage to occupy and
         grow out of tight corners, avoiding an excess of small and single-cell cages.
         The chosen size is a random number from 2 to the maximum space available for the cell.
         :param cell: the starting cell
@@ -182,7 +197,7 @@ class CageGenerator:
         :return: the selected size
         :rtype: int
         """
-        numNeighbors = self._getNumNeighbours(cell)
+        numNeighbors, _ = self._getUnusedNeighbors(cell)
         if numNeighbors == 4:
             return 1
 
@@ -191,7 +206,7 @@ class CageGenerator:
 
     def _makeOneCage(self, cell: Tuple[int, int], size: int) -> Cage:
         """
-        Make a cage of the required size.
+        Make a cage of the required size, starting from the given cell.
         Keep adding unused neighbouring cells until the required size is reached
         Update the lists of used cells and neighbours as it goes
         :param cell: the starting cell
@@ -205,7 +220,7 @@ class CageGenerator:
 
         cage = Cage()
         cage.addCell(currentCell)
-        unusedNeighbors = self._getUnusedNeighbors(cell)
+        _, unusedNeighbors = self._getUnusedNeighbors(cell)
 
         while len(cage.cells) < size:
             currentCell = self._selectNextCell(unusedNeighbors)
@@ -213,7 +228,8 @@ class CageGenerator:
             # update the list of un-used cells and neighbours
             self._removeUsedCell(currentCell)
             unusedNeighbors.remove(currentCell)
-            unusedNeighbors += self._getUnusedNeighbors(currentCell)
+            _, newNeighbors = self._getUnusedNeighbors(currentCell)
+
             # remove duplicates
             unusedNeighbors = list(set(unusedNeighbors))
 
@@ -235,16 +251,6 @@ class CageGenerator:
                 return neighbor
 
         return random.choice(neighbors)
-
-    def _getUnusedNeighbors(self, cell: Tuple[int, int]) -> List[Tuple[int, int]]:
-        """
-        Get the unused neighbours of the given cell.
-        :param cell: the given cell
-        :type cell: Tuple[int, int]
-        :return: the list of unused neighbours
-        :rtype: List[Tuple[int, int]]
-        """
-        pass
 
     def _getCageTarget(self, cage: Cage) -> int:
         """
