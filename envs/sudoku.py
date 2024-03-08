@@ -27,6 +27,45 @@ class KSudoku:
     def getCell(self, r: int, c: int) -> int:
         return self.grid[r][c]
 
+    def isGridValid(self, grid: Grid) -> bool:
+        """
+        Check if the given grid is valid.
+        :param grid: the given grid
+        :type grid: Grid
+        :return: whether the grid is valid
+        :rtype: bool
+        """
+
+        # check rows
+        for row in grid:
+            if not self._isUnitValid(row):
+                return False
+
+        # check columns
+        for col in range(9):
+            if not self._isUnitValid([grid[row][col] for row in range(9)]):
+                return False
+
+        # check 3x3 squares
+        for row in range(0, 9, 3):
+            for col in range(0, 9, 3):
+                square = [grid[r][c] for r in range(row, row + 3) for c in range(col, col + 3)]
+                if not self._isUnitValid(square):
+                    return False
+
+        return True
+
+    @staticmethod
+    def _isUnitValid(unit: List[int]) -> bool:
+        """
+        Check if the given unit (row, column, or 3x3 square) is valid.
+        :param unit: the given unit
+        :type unit: List[int]
+        :return: whether the unit is valid
+        :rtype: bool
+        """
+        
+
     def _generateGrid(self, baseGrid: Grid) -> Grid:
         return self._mask(baseGrid)
 
@@ -84,7 +123,7 @@ class KSudoku:
                         avb2 = np.setdiff1d(np.arange(0, n + 1),
                                             g[sub_r * 3:(sub_r + 1) * 3, sub_c * 3:(sub_c + 1) * 3].ravel())
                         avb = np.intersect1d(avb1, avb2)
-                        g[r, c] = np.random.choice(avb, size=1)
+                        g[r, c] = np.random.choice(avb, size=1)[0]
                 break
             except ValueError:
                 attempt += 1
@@ -303,3 +342,14 @@ class CageGenerator:
         :type cell: Tuple[int, int]
         """
         self.unusedCells.remove(cell)
+
+
+if __name__ == "__main__":
+    sudoku = KSudoku()
+    g = sudoku.getGrid()
+    for r in g:
+        print(r)
+    print()
+    b = sudoku.getBase()
+    for r in b:
+        print(r)
