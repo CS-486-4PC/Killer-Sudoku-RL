@@ -182,8 +182,23 @@ class CageGenerator:
         # check the 4 neighbours: up, down, left, right
         for deltaRow, deltaCol in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             neighbor = (row + deltaRow, col + deltaCol)
-            
 
+            if self._isValidCell(neighbor) and neighbor in self.unusedCells:
+                unusedNeighbors.append(neighbor)
+
+        return len(unusedNeighbors), unusedNeighbors
+
+    @staticmethod
+    def _isValidCell(cell: Tuple[int, int]) -> bool:
+        """
+        Check if the given cell is valid, i.e. within the grid boundaries.
+        :param cell: the given cell
+        :type cell: Tuple[int, int]
+        :return: whether the cell is valid
+        :rtype: bool
+        """
+        row, col = cell
+        return 0 <= row <= 8 and 0 <= col <= 8
 
     def _selectSize(self, cell: Tuple[int, int]) -> int:
         """
@@ -247,7 +262,8 @@ class CageGenerator:
         :rtype: Tuple[int, int]
         """
         for neighbor in neighbors:
-            if self._getNumNeighbours(neighbor) == 4:
+            numNeighbours, _ = self._getUnusedNeighbors(neighbor)
+            if numNeighbours == 4:
                 return neighbor
 
         return random.choice(neighbors)
@@ -270,6 +286,16 @@ class CageGenerator:
         """
         pass
 
+    def _backUp(self, cage: Cage) -> None:
+        """
+        Back up the cage.
+        :param cage: the cage
+        :type cage: Cage
+        """
+        for cell in cage.cells:
+            self.unusedCells.append(cell)
+        self.cages.remove(cage)
+
     def _removeUsedCell(self, cell: Tuple[int, int]) -> None:
         """
         Remove the used cell from the unused cells.
@@ -277,17 +303,3 @@ class CageGenerator:
         :type cell: Tuple[int, int]
         """
         self.unusedCells.remove(cell)
-
-
-if __name__ == "__main__":
-    ks = KSudoku()
-    g = ks.getGrid()
-    for r in g:
-        print(r)
-    print()
-
-    b = ks.getBase()
-    for r in b:
-        print(r)
-
-    cg = CageGenerator(b)
