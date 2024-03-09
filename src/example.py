@@ -61,12 +61,12 @@ policy_kwargs = dict(
 env = KillerSudokuEnv()
 
 # Instantiate the agent
-# model = PPO("MlpPolicy", env, policy_kwargs=policy_kwargs, verbose=1)
+model = PPO("MlpPolicy", env, policy_kwargs=policy_kwargs, verbose=1)
 #
 # # Train the agent and display a progress bar
-# model.learn(total_timesteps=int(2e5), progress_bar=True)
+model.learn(total_timesteps=int(2e5), progress_bar=True)
 #
-# model.save("killer_sudoku")
+model.save("killer_sudoku")
 # del model  # delete trained model to demonstrate loading
 
 # Load the trained agent

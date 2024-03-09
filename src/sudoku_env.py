@@ -29,16 +29,28 @@ class KillerSudokuEnv(gym.Env):
 
         self._setup_board(self.seed, self.difficulty)
 
+    def _count_correct_cells(self) -> int:
+        correct_count = 0
+        for row in range(self.size):
+            for col in range(self.size):
+                if self.grid[row][col] == self.base[row][col] and self.grid[row][col] != 0:
+                    correct_count += 1
+        return correct_count
+
     def step(self, action: Action) -> tuple[np.ndarray, float, bool, bool, dict]:
         row, col, number = action
         correct_number = self.base[row, col]  # The correct number in the solution
 
+        valid_cells = self._count_correct_cells()  # Count the number of valid cells
+
         # Check if the action places the correct number
         if number == correct_number:
             self.grid[row, col] = number  # Update the state with the correct action
-            reward = 1  # Positive reward for correct placement
+            # Reward diminishes as more cells become valid (more at the beginning, less towards the end)
+            reward = 1 - valid_cells / 81
         else:
-            reward = -1  # Negative reward for incorrect placement
+            # Negative reward becomes more severe as more cells become valid
+            reward = -1 - (81 - valid_cells) / 81
 
         terminated = False
         truncated = False
@@ -46,8 +58,7 @@ class KillerSudokuEnv(gym.Env):
 
         if self._is_game_completed():
             terminated = True
-        else:
-            reward += 0  # No additional reward if the game is not completed
+            reward = 1  # Ensure final reward is 1 for completing the game
 
         observation = np.concatenate((self.grid, self.cages), axis=1)  # Combine grid and cages
 
