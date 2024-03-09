@@ -138,10 +138,9 @@ class KSudoku:
 
 
 class Cage:
-    def __init__(self):
+    def __init__(self, base: Grid):
         self.cells: List[Tuple[int, int]] = []  # list of (row, col)
-        self.value: int = 0  # sum of the cells in the cage
-        self._size: int = 0  # number of cells in the cage
+        self.base = base
 
     def addCell(self, cell: Tuple[int, int]) -> None:
         self.cells.append(cell)
@@ -149,16 +148,20 @@ class Cage:
     def removeCell(self, cell: Tuple[int, int]) -> None:
         self.cells.remove(cell)
 
-    def getValue(self, baseGrid: Grid) -> int:
+    def getCells(self) -> List[Tuple[int, int]]:
+        return self.cells
+
+    def getValue(self) -> int:
         """
         Compute the sum of all cells in the cage.
         :return: the sum of all cells in the cage
         :rtype: int
         """
+        value = 0
         for cell in self.cells:
             row, col = cell
-            self.value += baseGrid[row][col]
-        return self.value
+            value += self.base[row][col]
+        return value
 
     def getSize(self) -> int:
         """
@@ -174,7 +177,8 @@ class CageGenerator:
     Generate cages in a given grid.
     """
 
-    def __init__(self, baseGrid: Grid):
+    def __init__(self, baseGrid: Grid, seed=SEED):
+        self.seed = seed
         self.grid = baseGrid
         self.cages: List[Cage] = []
         # initialize the list of unused cells
@@ -191,10 +195,10 @@ class CageGenerator:
         while self.unusedCells:
             cell = self._selectStartingCell()
             size = self._selectSize(cell)
-            cage = self._makeOneCage(cell, size)
-            target = self._getCageTarget(cage)
+            cage = self._makeOneCage(cell, 5)
             if self._isCageOK(cage):
                 self.cages.append(cage)
+                print("cage added: ", cage.getCells(), ", size: ", cage.getSize(), " value: ", cage.getValue())
             else:
                 self._backUp(cage)
 
@@ -208,6 +212,8 @@ class CageGenerator:
         :return: the selected cell
         :rtype: Tuple[int, int]
         """
+        random.seed(self.seed)
+
         if not self.unusedCells:
             raise ValueError("no unused cells")
 
@@ -256,18 +262,21 @@ class CageGenerator:
         A cell surrounded on 4 sides must become a single-cell cage.
         Choosing a cell surrounded on three sides allows the cage to occupy and
         grow out of tight corners, avoiding an excess of small and single-cell cages.
-        The chosen size is a random number from 2 to the maximum space available for the cell.
+        The chosen size is a random number from 2 to biggest cage possible, 9.
         :param cell: the starting cell
         :type cell: Tuple[int, int]
         :return: the selected size
         :rtype: int
         """
+        random.seed(self.seed)
+
         numNeighbors, _ = self._getUnusedNeighbors(cell)
+        print("numNeighbors: ", numNeighbors)
         if numNeighbors == 4:
             return 1
 
-        # random size from 2 to the maximum space available for the cell
-        return random.randint(1, numNeighbors + 1)
+        # random size from 2 to the maximum possible size, 9
+        return random.randint(2, 9)
 
     def _makeOneCage(self, cell: Tuple[int, int], size: int) -> Cage:
         """
@@ -283,18 +292,20 @@ class CageGenerator:
         """
         currentCell = cell
 
-        cage = Cage()
+        cage = Cage(self.grid)
         cage.addCell(currentCell)
+        self._removeUsedCell(currentCell)
         _, unusedNeighbors = self._getUnusedNeighbors(cell)
 
-        while len(cage.cells) < size:
+        while cage.getSize() < size and unusedNeighbors:
             currentCell = self._selectNextCell(unusedNeighbors)
             cage.addCell(currentCell)
-            # update the list of un-used cells and neighbours
+            # update the list of un-used cells
             self._removeUsedCell(currentCell)
             unusedNeighbors.remove(currentCell)
+            # update the list of un-used neighbours
             _, newNeighbors = self._getUnusedNeighbors(currentCell)
-
+            unusedNeighbors.extend(newNeighbors)
             # remove duplicates
             unusedNeighbors = list(set(unusedNeighbors))
 
@@ -311,20 +322,16 @@ class CageGenerator:
         :return: the next cell
         :rtype: Tuple[int, int]
         """
+        random.seed(self.seed)
+
         for neighbor in neighbors:
             numNeighbours, _ = self._getUnusedNeighbors(neighbor)
-            if numNeighbours == 4:
+            # the cell I just came from is a neighbor but was removed from the list
+            # 
+            if numNeighbours == 3:
                 return neighbor
 
         return random.choice(neighbors)
-
-    def _getCageTarget(self, cage: Cage) -> int:
-        """
-        Set value of the cage.
-        :param cage: the cage
-        :type cage: Cage
-        """
-        return cage.getValue(self.grid)
 
     def _isCageOK(self, cage: Cage) -> bool:
         """
@@ -334,7 +341,8 @@ class CageGenerator:
         :return: whether the cage is valid
         :rtype: bool
         """
-        pass
+        # TODO:
+        return True
 
     def _backUp(self, cage: Cage) -> None:
         """
@@ -357,15 +365,15 @@ class CageGenerator:
 
 if __name__ == "__main__":
     ks = KSudoku()
-    # g = sudoku.getGrid()
+    g = ks.getGrid()
     # for r in g:
     #     print(r)
     # print()
     b = ks.getBase()
-    for r in b:
-        print(r)
+    # for r in b:
+    #     print(r)
 
     cg = CageGenerator(b)
+    # print(cg._selectStartingCell())
     cages = cg.generateCages()
-    for c in cages:
-        print(c.cells, c.value)
+
