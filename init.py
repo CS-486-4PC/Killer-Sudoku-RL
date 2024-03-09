@@ -1,5 +1,5 @@
 from random import randint
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -44,7 +44,7 @@ def solve_sudoku(board: np.ndarray) -> bool:
     return False  # Triggers backtracking
 
 
-def find_empty_location(board: np.ndarray) -> Optional[(int, int)]:
+def find_empty_location(board: np.ndarray) -> Optional[Tuple[int, int]]:
     for i in range(9):
         for j in range(9):
             if board[i][j] == 0:
