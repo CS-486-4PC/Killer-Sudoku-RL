@@ -190,6 +190,8 @@ class KillerSudokuEnv(py_environment.PyEnvironment):
         return correct_count
 
 
+print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+
 # Step 2: Create the Neural Network Model
 train_env = KillerSudokuEnv()
 train_env = tf_py_environment.TFPyEnvironment(train_env)
@@ -223,8 +225,14 @@ driver = dynamic_step_driver.DynamicStepDriver(
     num_steps=1)  # collect a step with each driver.run()
 
 # Run the driver to collect experience
-for _ in range(10000):  # number of steps to collect
+total_steps_to_collect = 10000
+print_interval = 1000  # Print progress every 1000 steps
+
+for step in range(total_steps_to_collect):
     driver.run()
+
+    if step % print_interval == 0 and step > 0:
+        print(f"Experience Collection Progress: {step / total_steps_to_collect * 100:.2f}%")
 
 # Sample a batch of data from the buffer and train the agent
 total_training_iterations = 5000
