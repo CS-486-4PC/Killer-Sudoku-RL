@@ -1,8 +1,9 @@
 import typing
 
 import gymnasium as gym
+import numpy as np
 import tensorflow as tf
-from gymnasium.spaces import Discrete, Box, MultiDiscrete
+from gymnasium.spaces import Box, MultiDiscrete
 
 from sudoku import Grid, KSudoku
 
@@ -27,7 +28,9 @@ class KillerSudokuEnv(gym.Env):
 
     def step(self, action: Action) -> typing.Tuple[Grid, float, bool, dict]:
         row, col, number = action
-        self.grid[row][col] = number  # Update the state with the action
+
+        # self.grid[row][col] = number  # Update the state with the action
+        self.grid[row, col] = number  # NumPy indexing
 
         if self._is_game_completed():
             reward = self._calculate_reward()
@@ -38,13 +41,13 @@ class KillerSudokuEnv(gym.Env):
 
         return self.grid, reward, done, {}
 
-    def reset(self, seed=None, options=None):
+    def reset(self, seed=None, options=None) -> np.ndarray:
         self._setup_board(self.seed, self.difficulty)
         return self.grid
 
     def render(self, mode='human'):
         for row in self.grid:
-            print(row)
+            print(' '.join(map(str, row)))
 
     def seed(self, seed):
         self.seed = seed
@@ -62,28 +65,26 @@ class KillerSudokuEnv(gym.Env):
         return True
 
     def _is_puzzle_valid(self) -> bool:
+        def is_unit_valid(unit: np.ndarray) -> bool:
+            # Filter out zeros and check for duplicates
+            filtered_unit = unit[unit > 0]
+            return len(np.unique(filtered_unit)) == len(filtered_unit)
 
-        def isUnitValid(unit: typing.List[int]) -> bool:
-            # remove zeros and check if there are no duplicates
-            unit = [i for i in unit if 0 < i < 10]
-            return len(set(unit)) == len(unit)
-
-        # Check if the puzzle is valid
-        # check rows
-        for row in self.grid:
-            if not isUnitValid(row):
+        # Check rows
+        for row in range(9):
+            if not is_unit_valid(self.grid[row, :]):
                 return False
 
-        # check columns
+        # Check columns
         for col in range(9):
-            if not isUnitValid([self.grid[row][col] for row in range(9)]):
+            if not is_unit_valid(self.grid[:, col]):
                 return False
 
-        # check 3x3 squares
+        # Check 3x3 squares
         for row in range(0, 9, 3):
             for col in range(0, 9, 3):
-                square = [self.grid[r][c] for r in range(row, row + 3) for c in range(col, col + 3)]
-                if not isUnitValid(square):
+                square = self.grid[row:row + 3, col:col + 3].flatten()
+                if not is_unit_valid(square):
                     return False
 
         return True

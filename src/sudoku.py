@@ -8,8 +8,8 @@ SEED = 42
 RATE = 0.5
 # random.seed(SEED)  # for reproducibility
 
-Grid = List[List[int]]
-
+# Grid = List[List[int]]  # Old definition
+Grid = np.ndarray  # New definition
 
 class KSudoku:
     def __init__(self, seed=SEED, mask_rate=RATE):
@@ -41,7 +41,11 @@ class KSudoku:
         if self.seed is not None:
             random.seed(self.seed)
 
-        m_grid = copy.deepcopy(grid)
+        # Old copying method
+        # m_grid = copy.deepcopy(grid)
+
+        # New copying method
+        m_grid = grid.copy()
         if self.mask_rate <= 0.:
             return m_grid
 
@@ -89,11 +93,12 @@ class KSudoku:
             except ValueError:
                 attempt += 1
 
-        g_list: Grid = g.tolist()
-        if attempt > 1:
-            logging.debug(f"generate by np_union attempt {attempt}")
+        # Old return statement
+        # g_list: Grid = g.tolist()
+        # return g_list
 
-        return g_list
+        # New return statement
+        return g
 
 
 class Cage:
