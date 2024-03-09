@@ -24,7 +24,7 @@ class KSNetwork(nn.Module):
         super(KSNetwork, self).__init__()
         # Define your network architecture here
         # Example architecture:
-        num_inputs = observation_space.shape[0]
+        num_inputs = observation_space.shape[0] * observation_space.shape[1]
         num_outputs = action_space.n
         self.net = nn.Sequential(
             nn.Linear(num_inputs, 1024),
@@ -39,6 +39,7 @@ class KSNetwork(nn.Module):
         )
 
     def forward(self, x):
+        x = x.view(x.size(0), -1)  # Flatten the input
         return self.net(x)
 
 

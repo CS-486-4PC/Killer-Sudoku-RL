@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 from gymnasium.spaces import Box, MultiDiscrete
 
-from sudoku import Grid, KSudoku
+from sudoku import Grid, KSudoku, CageGenerator, to_array
 
 print(tf.__version__)
 
@@ -23,27 +23,32 @@ class KillerSudokuEnv(gym.Env):
         # number of actions: row * column * number = 9x9x9
         self.num_actions = self.size ** 3
         # observation_space: 9x9 grid, each cell has a value between 0-9 (0 = empty)
-        self.observation_space = Box(low=0, high=9, shape=(self.size, self.size * 2), dtype=int)
+        self.observation_space = Box(low=0, high=9, shape=(self.size, self.size * 2), dtype=np.int32)
+
         self._setup_board(self.seed, self.difficulty)
 
-    def step(self, action: Action) -> typing.Tuple[Grid, float, bool, dict]:
+    def step(self, action: Action) -> tuple[np.ndarray, float, bool, bool, dict]:
         row, col, number = action
+        self.grid[row, col] = number  # Update the state with the action
 
-        # self.grid[row][col] = number  # Update the state with the action
-        self.grid[row, col] = number  # NumPy indexing
+        terminated = False
+        truncated = False
+        info = {}  # Additional information, empty for now
 
         if self._is_game_completed():
             reward = self._calculate_reward()
-            done = True
+            terminated = True
         else:
             reward = 0
-            done = False
 
-        return self.grid, reward, done, {}
+        observation = np.concatenate((self.grid, self.cages), axis=1)  # Combine grid and cages
 
-    def reset(self, seed=None, options=None) -> np.ndarray:
+        return observation, reward, terminated, truncated, info
+
+    def reset(self, seed=None, options=None):
         self._setup_board(self.seed, self.difficulty)
-        return self.grid
+        observation = np.concatenate((self.grid, self.cages), axis=1)
+        return observation, {}
 
     def render(self, mode='human'):
         for row in self.grid:
@@ -56,6 +61,10 @@ class KillerSudokuEnv(gym.Env):
         ks = KSudoku(seed, difficulty)
         self.grid = ks.getGrid()  # state
         self.base = ks.getBase()
+
+        cg = CageGenerator(self.base)
+        # print(cg._selectStartingCell())
+        self.cages = to_array(cg.generateCages())
 
     def _are_all_cells_filled(self) -> bool:
         # Check if the game is finished (all cells are filled)
