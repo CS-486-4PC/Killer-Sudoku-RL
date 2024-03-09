@@ -105,8 +105,15 @@ class KillerSudokuEnv(py_environment.PyEnvironment):
         self._state = np.zeros((9, 9), dtype=np.int32)
 
         # Here we define what an action could be.
+        #
+        # The action must be one dimensional,
+        # otherwise we hit this stupid error.
+        # ValueError: Network only supports action_specs with shape in [(), (1,)])
+        #   In call to configurable 'QNetwork' (<class 'tf_agents.networks.q_network.QNetwork'>)
+        #   self._action_spec = array_spec.BoundedArraySpec(
+        #     shape=(3,), dtype=np.int32, minimum=[0, 0, 1], maximum=[8, 8, 9], name='action')
         self._action_spec = array_spec.BoundedArraySpec(
-            shape=(3,), dtype=np.int32, minimum=[0, 0, 1], maximum=[8, 8, 9], name='action')
+            shape=(), dtype=np.int32, minimum=0, maximum=728, name='action')
 
         # Here we define what the grid should look like.
         self._observation_spec = array_spec.BoundedArraySpec(
@@ -151,9 +158,12 @@ class KillerSudokuEnv(py_environment.PyEnvironment):
     def _is_unique(self, arr):
         return len(arr) == len(np.unique(arr))
 
-    def _step(self, action: [int, int, int]) -> TimeStep:
-        # Extract row, column, and number from the action
-        row, col, number = action
+    def _step(self, action: int) -> TimeStep:
+        # See above reason why action is an int, and not [int, int, int]
+
+        row = action // 81
+        col = (action % 81) // 9
+        number = (action % 81) % 9 + 1
 
         # Apply the action to the Sudoku board
         self._state[row][col] = number
