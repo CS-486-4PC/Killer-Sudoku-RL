@@ -4,12 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-gymnasium = "*"
 tensorflow = "*"
 numpy = "*"
 pandas = "*"
 matplotlib = "*"
 keras-rl2 = "*"
+gymnasium = {extras = ["box2d"], version = "*"}
+stable-baselines3 = {extras = ["extra"], version = "*"}
 
 [dev-packages]
 
