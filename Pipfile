@@ -4,8 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+gymnasium = "*"
 tensorflow = "*"
-gym = "*"
 numpy = "*"
 pandas = "*"
 matplotlib = "*"
@@ -15,3 +15,4 @@ keras-rl2 = "*"
 
 [requires]
 python_version = "3.10"
+python_full_version = "3.10.6"
