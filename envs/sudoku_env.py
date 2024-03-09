@@ -1,7 +1,7 @@
 import typing
 
 import gymnasium as gym
-from gym.spaces import Discrete, Box, MultiDiscrete
+from gymnasium.spaces import Discrete, Box, MultiDiscrete
 import tensorflow as tf
 from tensorflow import keras
 
