@@ -6,7 +6,7 @@ import random
 
 SEED = 42
 RATE = 0.5
-random.seed(SEED)  # for reproducibility
+# random.seed(SEED)  # for reproducibility
 
 Grid = List[List[int]]
 
@@ -178,7 +178,7 @@ class CageGenerator:
     """
 
     def __init__(self, baseGrid: Grid, seed=SEED):
-        self.seed = seed
+        self.seed = None
         self.grid = baseGrid
         self.cages: List[Cage] = []
         # initialize the list of unused cells
@@ -195,10 +195,9 @@ class CageGenerator:
         while self.unusedCells:
             cell = self._selectStartingCell()
             size = self._selectSize(cell)
-            cage = self._makeOneCage(cell, 5)
+            cage = self._makeOneCage(cell, size)
             if self._isCageOK(cage):
                 self.cages.append(cage)
-                print("cage added: ", cage.getCells(), ", size: ", cage.getSize(), " value: ", cage.getValue())
             else:
                 self._backUp(cage)
 
@@ -271,7 +270,6 @@ class CageGenerator:
         random.seed(self.seed)
 
         numNeighbors, _ = self._getUnusedNeighbors(cell)
-        print("numNeighbors: ", numNeighbors)
         if numNeighbors == 4:
             return 1
 
@@ -327,7 +325,7 @@ class CageGenerator:
         for neighbor in neighbors:
             numNeighbours, _ = self._getUnusedNeighbors(neighbor)
             # the cell I just came from is a neighbor but was removed from the list
-            # 
+            # so technically I have 4 neighbors
             if numNeighbours == 3:
                 return neighbor
 
@@ -362,6 +360,24 @@ class CageGenerator:
         """
         self.unusedCells.remove(cell)
 
+    def visualize(self):
+        """
+        Visualize the generated cages on the grid.
+        """
+        grid = [[' ' for _ in range(9)] for _ in range(9)]
+
+        # Mark the cells with their corresponding cage values
+        for cage in self.cages:
+            cage_value = str(cage.getValue())
+            for cell in cage.cells:
+                row, col = cell
+                grid[row][col] = cage_value
+
+        # Print the grid with cages
+        print("KS Grid with Cages:")
+        for row in grid:
+            print(" ".join(f"{value:>3}" for value in row))
+
 
 if __name__ == "__main__":
     ks = KSudoku()
@@ -376,4 +392,5 @@ if __name__ == "__main__":
     cg = CageGenerator(b)
     # print(cg._selectStartingCell())
     cages = cg.generateCages()
+    cg.visualize()
 
