@@ -1,14 +1,14 @@
-from typing import Tuple, List
-import numpy as np
-import logging
-import copy
 import random
+from typing import Tuple, List
+
+import numpy as np
 
 SEED = 42
 RATE = 0.5
 # random.seed(SEED)  # for reproducibility
 
-Grid = List[List[int]]
+# Grid = List[List[int]]  # Old definition
+Grid = np.ndarray  # New definition
 
 
 class KSudoku:
@@ -41,7 +41,11 @@ class KSudoku:
         if self.seed is not None:
             random.seed(self.seed)
 
-        m_grid = copy.deepcopy(grid)
+        # Old copying method
+        # m_grid = copy.deepcopy(grid)
+
+        # New copying method
+        m_grid = grid.copy()
         if self.mask_rate <= 0.:
             return m_grid
 
@@ -89,11 +93,12 @@ class KSudoku:
             except ValueError:
                 attempt += 1
 
-        g_list: Grid = g.tolist()
-        if attempt > 1:
-            logging.debug(f"generate by np_union attempt {attempt}")
+        # Old return statement
+        # g_list: Grid = g.tolist()
+        # return g_list
 
-        return g_list
+        # New return statement
+        return g
 
 
 class Cage:
@@ -233,7 +238,7 @@ class CageGenerator:
             return 1
 
         # random size from 2 to the maximum possible size, 9
-        return random.randint(2, 9)
+        return random.randint(2, 5)
 
     def _makeOneCage(self, cell: Tuple[int, int], size: int) -> Cage:
         """
@@ -337,6 +342,21 @@ class CageGenerator:
         for row in grid:
             print(" ".join(f"{value:>3}" for value in row))
 
+def to_array(cages : List[Cage]) -> np.ndarray:
+    """
+    Visualize the generated cages on the grid and return as an ndarray.
+    :return: ndarray representing the grid with cages.
+    """
+    grid = np.zeros((9, 9), dtype=int)
+
+    for cage in cages:
+        cage_value = cage.getValue()
+        for cell in cage.cells:
+            row, col = cell
+            grid[row, col] = cage_value
+
+    return grid
+
 
 if __name__ == "__main__":
     ks = KSudoku()
@@ -352,4 +372,4 @@ if __name__ == "__main__":
     # print(cg._selectStartingCell())
     cages = cg.generateCages()
     cg.visualize()
-
+    print(b)
