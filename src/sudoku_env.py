@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 from gymnasium.spaces import Box, MultiDiscrete
 
-from sudoku import Grid, KSudoku, CageGenerator, to_array
+from sudoku import KSudoku, CageGenerator, to_array
 
 print(tf.__version__)
 
@@ -14,6 +14,8 @@ Action = typing.Tuple[int, int, int]
 
 class KillerSudokuEnv(gym.Env):
     def __init__(self):
+        self.render_mode = "human"
+
         self.size = 9
         self.seed = 42  # larger value means more cells are masked, hence more difficult
         self.difficulty = 0.5
@@ -29,17 +31,23 @@ class KillerSudokuEnv(gym.Env):
 
     def step(self, action: Action) -> tuple[np.ndarray, float, bool, bool, dict]:
         row, col, number = action
-        self.grid[row, col] = number  # Update the state with the action
+        correct_number = self.base[row, col]  # The correct number in the solution
+
+        # Check if the action places the correct number
+        if number == correct_number:
+            self.grid[row, col] = number  # Update the state with the correct action
+            reward = 1  # Positive reward for correct placement
+        else:
+            reward = -1  # Negative reward for incorrect placement
 
         terminated = False
         truncated = False
         info = {}  # Additional information, empty for now
 
         if self._is_game_completed():
-            reward = self._calculate_reward()
             terminated = True
         else:
-            reward = 0
+            reward += 0  # No additional reward if the game is not completed
 
         observation = np.concatenate((self.grid, self.cages), axis=1)  # Combine grid and cages
 
@@ -51,8 +59,35 @@ class KillerSudokuEnv(gym.Env):
         return observation, {}
 
     def render(self, mode='human'):
-        for row in self.grid:
-            print(' '.join(map(str, row)))
+        if mode != 'human':
+            raise NotImplementedError("Only 'human' render mode is supported.")
+
+        # Create a visual representation of the grid and cages
+        grid_str = ""
+        for r in range(self.size):
+            if r % 3 == 0 and r != 0:  # Add a horizontal divider every 3 rows
+                grid_str += "-" * 21 + "\n"
+
+            for c in range(self.size):
+                if c % 3 == 0 and c != 0:  # Add a vertical divider every 3 columns
+                    grid_str += "| "
+
+                cell_value = self.grid[r, c]
+                cell_str = str(cell_value) if cell_value != 0 else '.'
+                grid_str += cell_str + " "
+
+            grid_str += "\n"
+
+        # Print cage information every few lines if needed
+        for r in range(0, self.size, 3):
+            cage_str = ""
+            for c in range(self.size):
+                cage_index = r // 3 * 3 + c // 3
+                sum_of_cage = sum(self.cages[cage_index])
+                cage_str += f"Cage {cage_index}: Sum = {sum_of_cage}\t"
+            grid_str += cage_str + "\n"
+
+        print(grid_str)
 
     def seed(self, seed):
         self.seed = seed
