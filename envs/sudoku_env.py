@@ -1,7 +1,7 @@
 import typing
 
 import gymnasium as gym
-from gymnasium.spaces import Discrete, Box, MultiDiscrete
+from gymnasium.spaces import Discrete, Box
 import tensorflow as tf
 from tensorflow import keras
 
@@ -38,11 +38,14 @@ class KillerSudokuEnv(gym.Env):
         row, col, number = action
         self.grid[row][col] = number  # Update the state with the action
 
-        done = self._check_done()
-        reward = self._get_reward(row, col, number)
-        info = {}
+        if self._is_game_completed():
+            reward = self._calculate_reward()
+            done = True
+        else:
+            reward = 0
+            done = False
 
-        return self.grid, reward, done, info
+        return self.grid, reward, done, {}
 
     def reset(self, seed=None, options=None):
         self._setup_board(self.seed, self.difficulty)
@@ -57,19 +60,57 @@ class KillerSudokuEnv(gym.Env):
 
     def _setup_board(self, seed, difficulty):
         ks = KSudoku(seed, difficulty)
-        self.grid = ks.getGrid()
+        self.grid = ks.getGrid()  # state
         self.base = ks.getBase()
 
-    def _check_done(self) -> bool:
+    def _are_all_cells_filled(self) -> bool:
         # Check if the game is finished (all cells are filled)
         for row in self.grid:
             if 0 in row:
                 return False
+        return True
 
-    def _get_reward(self, row: int, col: int, number: int) -> float:
-        # Define reward logic for the game
-        return 0.0  # TODO: Placeholder reward, implement game-specific logic
+    def _is_puzzle_valid(self) -> bool:
 
+        def isUnitValid(unit: typing.List[int]) -> bool:
+            # remove zeros and check if there are no duplicates
+            unit = [i for i in unit if 0 < i < 10]
+            return len(set(unit)) == len(unit)
+
+        # Check if the puzzle is valid
+        # check rows
+        for row in self.grid:
+            if not isUnitValid(row):
+                return False
+
+        # check columns
+        for col in range(9):
+            if not isUnitValid([self.grid[row][col] for row in range(9)]):
+                return False
+
+        # check 3x3 squares
+        for row in range(0, 9, 3):
+            for col in range(0, 9, 3):
+                square = [self.grid[r][c] for r in range(row, row + 3) for c in range(col, col + 3)]
+                if not isUnitValid(square):
+                    return False
+
+        return True
+
+    def _is_game_completed(self) -> bool:
+        return self._are_all_cells_filled() and self._is_puzzle_valid()
+
+    def _calculate_reward(self):
+        # Calculate the number of correctly filled cells
+        return self._count_correct_cells()
+
+    def _count_correct_cells(self) -> int:
+        correct_count = 0
+        for row in range(9):
+            for col in range(9):
+                if self.grid[row][col] == self.base[row][col]:
+                    correct_count += 1
+        return correct_count
 
 def main():
     # Create the environment

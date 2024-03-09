@@ -6,7 +6,7 @@ import random
 
 SEED = 42
 RATE = 0.5
-random.seed(SEED)  # for reproducibility
+# random.seed(SEED)  # for reproducibility
 
 Grid = List[List[int]]
 
@@ -26,47 +26,6 @@ class KSudoku:
 
     def getCell(self, r: int, c: int) -> int:
         return self.base[r][c]
-
-    def isGridValid(self, grid: Grid) -> bool:
-        """
-        Check if the given grid is valid.
-        :param grid: the given grid
-        :type grid: Grid
-        :return: whether the grid is valid
-        :rtype: bool
-        """
-
-        # check rows
-        for row in grid:
-            if not self._isUnitValid(row):
-                return False
-
-        # check columns
-        for col in range(9):
-            if not self._isUnitValid([grid[row][col] for row in range(9)]):
-                return False
-
-        # check 3x3 squares
-        for row in range(0, 9, 3):
-            for col in range(0, 9, 3):
-                square = [grid[r][c] for r in range(row, row + 3) for c in range(col, col + 3)]
-                if not self._isUnitValid(square):
-                    return False
-
-        return True
-
-    @staticmethod
-    def _isUnitValid(unit: List[int]) -> bool:
-        """
-        Check if the given unit (row, column, or 3x3 square) is valid.
-        :param unit: the given unit
-        :type unit: List[int]
-        :return: whether the unit is valid
-        :rtype: bool
-        """
-        # remove zeros and check if there are no duplicates
-        unit = [i for i in unit if 0 < i < 10]
-        return len(set(unit)) == len(unit)
 
     def _generateGrid(self, baseGrid: Grid) -> Grid:
         return self._mask(baseGrid)
@@ -178,7 +137,7 @@ class CageGenerator:
     """
 
     def __init__(self, baseGrid: Grid, seed=SEED):
-        self.seed = seed
+        self.seed = None
         self.grid = baseGrid
         self.cages: List[Cage] = []
         # initialize the list of unused cells
@@ -195,10 +154,9 @@ class CageGenerator:
         while self.unusedCells:
             cell = self._selectStartingCell()
             size = self._selectSize(cell)
-            cage = self._makeOneCage(cell, 5)
+            cage = self._makeOneCage(cell, size)
             if self._isCageOK(cage):
                 self.cages.append(cage)
-                print("cage added: ", cage.getCells(), ", size: ", cage.getSize(), " value: ", cage.getValue())
             else:
                 self._backUp(cage)
 
@@ -271,7 +229,6 @@ class CageGenerator:
         random.seed(self.seed)
 
         numNeighbors, _ = self._getUnusedNeighbors(cell)
-        print("numNeighbors: ", numNeighbors)
         if numNeighbors == 4:
             return 1
 
@@ -327,7 +284,7 @@ class CageGenerator:
         for neighbor in neighbors:
             numNeighbours, _ = self._getUnusedNeighbors(neighbor)
             # the cell I just came from is a neighbor but was removed from the list
-            # 
+            # so technically I have 4 neighbors
             if numNeighbours == 3:
                 return neighbor
 
@@ -362,6 +319,24 @@ class CageGenerator:
         """
         self.unusedCells.remove(cell)
 
+    def visualize(self):
+        """
+        Visualize the generated cages on the grid.
+        """
+        grid = [[' ' for _ in range(9)] for _ in range(9)]
+
+        # Mark the cells with their corresponding cage values
+        for cage in self.cages:
+            cage_value = str(cage.getValue())
+            for cell in cage.cells:
+                row, col = cell
+                grid[row][col] = cage_value
+
+        # Print the grid with cages
+        print("KS Grid with Cages:")
+        for row in grid:
+            print(" ".join(f"{value:>3}" for value in row))
+
 
 if __name__ == "__main__":
     ks = KSudoku()
@@ -376,4 +351,5 @@ if __name__ == "__main__":
     cg = CageGenerator(b)
     # print(cg._selectStartingCell())
     cages = cg.generateCages()
+    cg.visualize()
 
