@@ -25,7 +25,7 @@ class KSudoku:
         return self.base
 
     def getCell(self, r: int, c: int) -> int:
-        return self.grid[r][c]
+        return self.base[r][c]
 
     def isGridValid(self, grid: Grid) -> bool:
         """
@@ -64,7 +64,9 @@ class KSudoku:
         :return: whether the unit is valid
         :rtype: bool
         """
-        
+        # remove zeros and check if there are no duplicates
+        unit = [i for i in unit if 0 < i < 10]
+        return len(set(unit)) == len(unit)
 
     def _generateGrid(self, baseGrid: Grid) -> Grid:
         return self._mask(baseGrid)
@@ -139,6 +141,7 @@ class Cage:
     def __init__(self):
         self.cells: List[Tuple[int, int]] = []  # list of (row, col)
         self.value: int = 0  # sum of the cells in the cage
+        self._size: int = 0  # number of cells in the cage
 
     def addCell(self, cell: Tuple[int, int]) -> None:
         self.cells.append(cell)
@@ -156,6 +159,14 @@ class Cage:
             row, col = cell
             self.value += baseGrid[row][col]
         return self.value
+
+    def getSize(self) -> int:
+        """
+        Get the size of the cage.
+        :return: the size of the cage
+        :rtype: int
+        """
+        return len(self.cells)
 
 
 class CageGenerator:
@@ -345,11 +356,16 @@ class CageGenerator:
 
 
 if __name__ == "__main__":
-    sudoku = KSudoku()
-    g = sudoku.getGrid()
-    for r in g:
-        print(r)
-    print()
-    b = sudoku.getBase()
+    ks = KSudoku()
+    # g = sudoku.getGrid()
+    # for r in g:
+    #     print(r)
+    # print()
+    b = ks.getBase()
     for r in b:
         print(r)
+
+    cg = CageGenerator(b)
+    cages = cg.generateCages()
+    for c in cages:
+        print(c.cells, c.value)
