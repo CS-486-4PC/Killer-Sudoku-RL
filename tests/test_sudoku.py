@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from envs.sudoku import KSudoku, CageGenerator, Cage
+from src.sudoku import KSudoku, CageGenerator, Cage
 
 """ seed = 42
 [4, 8, 5, 2, 7, 6, 3, 9, 1]

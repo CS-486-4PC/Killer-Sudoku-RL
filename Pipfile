@@ -4,13 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-tensorflow = "*"
-numpy = "*"
-pandas = "*"
-matplotlib = "*"
-keras-rl2 = "*"
-gymnasium = {extras = ["box2d"], version = "*"}
-stable-baselines3 = {extras = ["extra"], version = "*"}
+torch = "*"
+torchvision = "*"
+torchaudio = "*"
 
 [dev-packages]
 
