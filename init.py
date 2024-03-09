@@ -1,17 +1,13 @@
 from random import randint
 from typing import Optional, Tuple
 
+import gymnasium as gym
 import numpy as np
-import tensorflow as tf
-from tf_agents.agents import DqnAgent
-from tf_agents.agents.dqn import dqn_agent
-from tf_agents.drivers import dynamic_step_driver
-from tf_agents.environments import py_environment, tf_py_environment
-from tf_agents.networks import q_network
-from tf_agents.replay_buffers import tf_uniform_replay_buffer
-from tf_agents.specs import array_spec, BoundedArraySpec
-from tf_agents.trajectories import time_step, TimeStep
-from tf_agents.utils import common
+import torch
+from gymnasium import spaces
+from stable_baselines3 import DQN
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.evaluation import evaluate_policy
 
 
 def is_valid(board: np.ndarray, row: int, col: int, num: int) -> bool:
@@ -95,41 +91,53 @@ def remove_numbers(board: np.ndarray) -> None:
 
 
 # Step 1: Define the Killer Sudoku Environment
-class KillerSudokuEnv(py_environment.PyEnvironment):
-    _state: np.ndarray
-    solution: np.ndarray
-    _action_spec: BoundedArraySpec
-    _observation_spec: BoundedArraySpec
+class KillerSudokuEnv(gym.Env):
+    metadata = {'render.modes': ['human']}
 
     def __init__(self):
-        super().__init__()
-        self._state = np.zeros((9, 9), dtype=np.int32)
+        super(KillerSudokuEnv, self).__init__()
+        self.action_space = spaces.Discrete(729)  # 9*9*9 possible actions
+        self.observation_space = spaces.Box(low=0, high=9, shape=(9, 9), dtype=np.int32)
+        self._state = None
+        self.solution = None
 
-        # Here we define what an action could be.
-        #
-        # The action must be one dimensional,
-        # otherwise we hit this stupid error.
-        # ValueError: Network only supports action_specs with shape in [(), (1,)])
-        #   In call to configurable 'QNetwork' (<class 'tf_agents.networks.q_network.QNetwork'>)
-        #   self._action_spec = array_spec.BoundedArraySpec(
-        #     shape=(3,), dtype=np.int32, minimum=[0, 0, 1], maximum=[8, 8, 9], name='action')
-        self._action_spec = array_spec.BoundedArraySpec(
-            shape=(), dtype=np.int32, minimum=0, maximum=728, name='action')
+    def seed(self, seed=None):
+        # If you are using random number generators in your environment,
+        # set their seed here. For example:
+        # self.np_random, _ = seeding.np_random(seed)
 
-        # Here we define what the grid should look like.
-        self._observation_spec = array_spec.BoundedArraySpec(
-            shape=self._state.shape, dtype=np.int32, minimum=0, maximum=9, name='observation')
+        # If your environment does not use a random generator, just pass
+        pass
 
-    def action_spec(self):
-        return self._action_spec
+    def reset(self, **kwargs):
+        # If you are using the 'seed' in your environment, you can extract and use it here:
+        # seed = kwargs.get('seed', None)
+        # if seed is not None:
+        #     # Set your random number generator's seed
+        #     ...
 
-    def observation_spec(self):
-        return self._observation_spec
+        self._state = self._generate_random_puzzle()
+        return self._state
 
-    def _reset(self) -> TimeStep:
-        self._state = self._generate_random_puzzle()  # Initialize with a new puzzle
-        self._episode_ended = False
-        return time_step.restart(self._state)
+    def step(self, action):
+        row = action // 81
+        col = (action % 81) // 9
+        number = (action % 81) % 9 + 1
+
+        self._state[row][col] = number
+
+        if self._is_game_completed():
+            reward = self._calculate_reward()
+            done = True
+        else:
+            reward = 0
+            done = False
+
+        return self._state, reward, done, {}
+
+    def render(self, mode='human', close=False):
+        if close:
+            return
 
     def _generate_random_puzzle(self) -> np.ndarray:
         generated = generate_sudoku()
@@ -159,24 +167,6 @@ class KillerSudokuEnv(py_environment.PyEnvironment):
     def _is_unique(self, arr):
         return len(arr) == len(np.unique(arr))
 
-    def _step(self, action: int) -> TimeStep:
-        # See above reason why action is an int, and not [int, int, int]
-
-        row = action // 81
-        col = (action % 81) // 9
-        number = (action % 81) % 9 + 1
-
-        # Apply the action to the Sudoku board
-        self._state[row][col] = number
-
-        # Check if the game is completed (solved or unsolvable)
-        if self._is_game_completed():
-            reward = self._calculate_reward()  # Calculate the reward
-            return time_step.termination(self._state, reward)
-        else:
-            # If game is not completed, continue without a reward
-            return time_step.transition(self._state, reward=0.0)
-
     def _calculate_reward(self) -> int:
         # Calculate the number of correctly filled cells
         return self._count_correct_cells()
@@ -190,80 +180,20 @@ class KillerSudokuEnv(py_environment.PyEnvironment):
         return correct_count
 
 
-print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
+# Define the device for PyTorch
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Step 2: Create the Neural Network Model
-train_env = KillerSudokuEnv()
-train_env = tf_py_environment.TFPyEnvironment(train_env)
-q_net = q_network.QNetwork(
-    train_env.observation_spec(),
-    train_env.action_spec(),
-    fc_layer_params=(100,))
+# Initialize the environment and the agent
+env = KillerSudokuEnv()
+env = make_vec_env(lambda: env, n_envs=1)
 
-# Step 3: Setup the DQN Agent
-optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=1e-3)
-train_step_counter = tf.Variable(0)
-agent = dqn_agent.DqnAgent(
-    train_env.time_step_spec(),
-    train_env.action_spec(),
-    q_network=q_net,
-    optimizer=optimizer,
-    td_errors_loss_fn=common.element_wise_squared_loss,
-    train_step_counter=train_step_counter)
-agent.initialize()
+# Create and train the DQN model
+model = DQN("MlpPolicy", env, verbose=1, buffer_size=100000, learning_rate=1e-3, batch_size=64)
+model.learn(total_timesteps=int(1e5))
 
-# Step 4: Training the Agent
-replay_buffer = tf_uniform_replay_buffer.TFUniformReplayBuffer(
-    data_spec=agent.collect_data_spec,
-    batch_size=train_env.batch_size,
-    max_length=100000)
+# Evaluate the trained agent
+mean_reward, std_reward = evaluate_policy(model, model.get_env(), n_eval_episodes=10)
+print(f"Mean reward: {mean_reward} +/- {std_reward}")
 
-driver = dynamic_step_driver.DynamicStepDriver(
-    train_env,
-    agent.collect_policy,
-    observers=[replay_buffer.add_batch],
-    num_steps=1)  # collect a step with each driver.run()
-
-# Run the driver to collect experience
-total_steps_to_collect = 10000
-print_interval = 1000  # Print progress every 1000 steps
-
-for step in range(total_steps_to_collect):
-    driver.run()
-
-    if step % print_interval == 0 and step > 0:
-        print(f"Experience Collection Progress: {step / total_steps_to_collect * 100:.2f}%")
-
-# Sample a batch of data from the buffer and train the agent
-total_training_iterations = 5000
-for iteration in range(total_training_iterations):
-    experience, _ = replay_buffer.get_next(sample_batch_size=64)
-    train_loss = agent.train(experience).loss
-
-    if iteration % 100 == 0:
-        print(f"Training Progress: {iteration / total_training_iterations * 100:.2f}% - Loss: {train_loss:.4f}")
-
-
-# Evaluate the agent's performance on a separate Killer Sudoku puzzle
-def evaluate_agent(agent: DqnAgent, env: KillerSudokuEnv, num_episodes=10):
-    total_correct_cells = 0
-    total_cells = 0
-    for _ in range(num_episodes):
-        time_step = env.reset()
-        while not time_step.is_last():
-            action_step = agent.policy.action(time_step)
-            time_step = env.step(action_step.action)
-
-        correct_cells = env._count_correct_cells()
-        total_correct_cells += correct_cells
-        total_cells += 81  # Total cells in a Sudoku puzzle
-
-    accuracy = total_correct_cells / total_cells * 100
-    print(f"Accuracy: {accuracy:.2f}%")
-
-
-# Create a new environment for evaluation
-eval_env = tf_py_environment.TFPyEnvironment(KillerSudokuEnv())
-
-# Evaluate the agent
-evaluate_agent(agent, eval_env)
+# Save the model
+model.save("killer_sudoku_dqn_model")

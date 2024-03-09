@@ -4,15 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-tensorflow = "*"
-gym = "*"
-numpy = "*"
-pandas = "*"
-matplotlib = "*"
-keras-rl2 = "*"
-tf-agents = "*"
+keras = "*"
+torch = "*"
+stable-baselines3 = "*"
+shimmy = "*"
+gymnasium = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.10"
+python_version = "3.8"
