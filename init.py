@@ -1,24 +1,38 @@
 import tensorflow as tf
+from tf_agents.agents.dqn import dqn_agent
+from tf_agents.drivers import dynamic_step_driver
 from tf_agents.environments import py_environment, tf_py_environment
 from tf_agents.networks import q_network
-from tf_agents.agents.dqn import dqn_agent
-from tf_agents.utils import common
 from tf_agents.replay_buffers import tf_uniform_replay_buffer
+from tf_agents.trajectories import time_step
 from tf_agents.trajectories import trajectory
-from tf_agents.drivers import dynamic_step_driver
+from tf_agents.utils import common
+
 
 # Step 1: Define the Killer Sudoku Environment
 class KillerSudokuEnv(py_environment.PyEnvironment):
-    def __init__(self):
-        # Define observation and action spec, initialize state, etc.
-
-    def _reset(self):
-        # Reset the environment state
-        return time_step.TimeStep(...)  # initial time step
+    # ... other methods ...
 
     def _step(self, action):
-        # Apply action, update the state, calculate reward
-        return time_step.TimeStep(...)  # subsequent time step
+        # Apply the action to the Sudoku board
+        # Check if the game is completed (solved or unsolvable)
+        if self._is_game_completed():
+            reward = self._calculate_reward()  # Calculate the reward
+            return time_step.termination(self._state, reward)
+        else:
+            # If game is not completed, continue without a reward
+            return time_step.transition(self._state, reward=0.0)
+
+    def _calculate_reward(self):
+        # Calculate the number of correctly filled cells
+        correct_cells = self._count_correct_cells()
+        return correct_cells
+
+    def _count_correct_cells(self):
+        # Implement logic to count correctly filled cells
+        # ...
+        return count
+
 
 # Step 2: Create the Neural Network Model
 train_env = KillerSudokuEnv()

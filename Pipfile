@@ -10,6 +10,7 @@ numpy = "*"
 pandas = "*"
 matplotlib = "*"
 keras-rl2 = "*"
+tf-agents = "*"
 
 [dev-packages]
 
