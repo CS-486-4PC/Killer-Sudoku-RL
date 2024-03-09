@@ -3,6 +3,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 import tensorflow as tf
+from tf_agents.agents import DqnAgent
 from tf_agents.agents.dqn import dqn_agent
 from tf_agents.drivers import dynamic_step_driver
 from tf_agents.environments import py_environment, tf_py_environment
@@ -226,8 +227,35 @@ for _ in range(10000):  # number of steps to collect
     driver.run()
 
 # Sample a batch of data from the buffer and train the agent
-for _ in range(5000):  # number of training iterations
+total_training_iterations = 5000
+for iteration in range(total_training_iterations):
     experience, _ = replay_buffer.get_next(sample_batch_size=64)
     train_loss = agent.train(experience).loss
 
+    if iteration % 100 == 0:
+        print(f"Training Progress: {iteration / total_training_iterations * 100:.2f}% - Loss: {train_loss:.4f}")
+
+
 # Evaluate the agent's performance on a separate Killer Sudoku puzzle
+def evaluate_agent(agent: DqnAgent, env: KillerSudokuEnv, num_episodes=10):
+    total_correct_cells = 0
+    total_cells = 0
+    for _ in range(num_episodes):
+        time_step = env.reset()
+        while not time_step.is_last():
+            action_step = agent.policy.action(time_step)
+            time_step = env.step(action_step.action)
+
+        correct_cells = env._count_correct_cells()
+        total_correct_cells += correct_cells
+        total_cells += 81  # Total cells in a Sudoku puzzle
+
+    accuracy = total_correct_cells / total_cells * 100
+    print(f"Accuracy: {accuracy:.2f}%")
+
+
+# Create a new environment for evaluation
+eval_env = tf_py_environment.TFPyEnvironment(KillerSudokuEnv())
+
+# Evaluate the agent
+evaluate_agent(agent, eval_env)
