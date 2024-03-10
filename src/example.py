@@ -8,7 +8,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
-from src.sudoku_env import KillerSudokuEnv
+from sudoku_env import KillerSudokuEnv
 
 print(f'PyTorch version: {torch.__version__}')
 print('*' * 10)
@@ -91,7 +91,7 @@ save_callback = SaveOnBestTrainingRewardCallback(check_freq=10000, save_path=sav
 callback_list = CallbackList([save_callback])
 
 # Train the agent with the callback list
-model.learn(total_timesteps=int(2e5), callback=callback_list, progress_bar=True)
+model.learn(total_timesteps=int(2e5), callback=callback_list)
 
 model.save("killer_sudoku")
 # del model  # delete trained model to demonstrate loading
