@@ -1,10 +1,11 @@
+import os
 import subprocess
 
 import gymnasium as gym
 import torch
 import torch.nn as nn
-from stable_baselines3 import DQN, PPO
-from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 from src.sudoku_env import KillerSudokuEnv
@@ -17,6 +18,22 @@ print('*' * 10)
 print(f'CUDNN version: {torch.backends.cudnn.version()}')
 print(f'Available GPU devices: {torch.cuda.device_count()}')
 print(f'Device Name: {torch.cuda.get_device_name()}')
+
+
+class SaveOnBestTrainingRewardCallback(BaseCallback):
+    """
+    Callback for saving a model every set number of steps.
+    """
+
+    def __init__(self, check_freq, save_path, verbose=1):
+        super(SaveOnBestTrainingRewardCallback, self).__init__(verbose)
+        self.check_freq = check_freq
+        self.save_path = save_path
+
+    def _on_step(self) -> bool:
+        if self.num_timesteps % self.check_freq == 0:
+            self.model.save(self.save_path + str(self.num_timesteps))
+        return True
 
 
 class KSNetwork(nn.Module):
@@ -62,10 +79,20 @@ env = KillerSudokuEnv()
 
 # Instantiate the agent
 model = PPO("MlpPolicy", env, policy_kwargs=policy_kwargs, verbose=1)
-#
-# # Train the agent and display a progress bar
-model.learn(total_timesteps=int(2e5), progress_bar=True)
-#
+
+# Train the agent and display a progress bar
+save_dir = "./models/"
+os.makedirs(save_dir, exist_ok=True)
+
+# Create your callbacks
+save_callback = SaveOnBestTrainingRewardCallback(check_freq=10000, save_path=save_dir)
+
+# Combine them into a CallbackList
+callback_list = CallbackList([save_callback])
+
+# Train the agent with the callback list
+model.learn(total_timesteps=int(2e5), callback=callback_list, progress_bar=True)
+
 model.save("killer_sudoku")
 # del model  # delete trained model to demonstrate loading
 
