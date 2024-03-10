@@ -1,3 +1,6 @@
 .idea/
 .DS_Store
 __pycache__/
+/src/models
+/tests/dqn_lunar.zip
+/src/killer_sudoku.zip
