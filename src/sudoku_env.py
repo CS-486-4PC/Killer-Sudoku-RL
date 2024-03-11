@@ -39,18 +39,25 @@ class KillerSudokuEnv(gym.Env):
 
     def step(self, action: Action) -> tuple[np.ndarray, float, bool, bool, dict]:
         row, col, number = action
-        correct_number = self.base[row, col]  # The correct number in the solution
 
-        valid_cells = self._count_correct_cells()  # Count the number of valid cells
+        # Check if the cell is pre-filled in the base puzzle
+        if self.grid[row, col] != 0:
+            reward = -0.2  # Negative reward for trying to fill a pre-filled cell
+            terminated = False
+            truncated = False
+            info = {}
+            observation = np.concatenate((self.grid, self.cages), axis=1)
+            return observation, reward, terminated, truncated, info
 
-        # Check if the action places the correct number
+        correct_number = self.base[row, col]
+
+
+        # Fixed rewards
         if number == correct_number:
-            self.grid[row, col] = number  # Update the state with the correct action
-            # Reward diminishes as more cells become valid (more at the beginning, less towards the end)
-            reward = 1 - valid_cells / 81
+            self.grid[row, col] = number  # Update the state with the action
+            reward = 0.1  # Fixed small positive reward for correct action
         else:
-            # Negative reward becomes more severe as more cells become valid
-            reward = -1 - (81 - valid_cells) / 81
+            reward = -0.1  # Fixed small negative reward for incorrect action
 
         terminated = False
         truncated = False
@@ -60,7 +67,7 @@ class KillerSudokuEnv(gym.Env):
             terminated = True
             reward = 1  # Ensure final reward is 1 for completing the game
 
-        observation = np.concatenate((self.grid, self.cages), axis=1)  # Combine grid and cages
+        observation = np.concatenate((self.grid, self.cages), axis=1)
 
         return observation, reward, terminated, truncated, info
 

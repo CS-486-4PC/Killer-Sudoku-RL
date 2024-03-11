@@ -11,6 +11,48 @@ RATE = 0.5
 Grid = np.ndarray  # New definition
 
 
+def is_valid(board, row, col, num):
+    # Check if the number is not repeated in the current row/column/3x3 square
+    for x in range(9):
+        if board[row][x] == num or board[x][col] == num or board[row - row % 3 + x // 3][col - col % 3 + x % 3] == num:
+            return False
+    return True
+
+
+def solve_sudoku(board):
+    empty = find_empty_location(board)
+    if not empty:
+        return True  # no more empty spaces, puzzle solved
+    row, col = empty
+
+    numbers = list(range(1, 10))
+    random.shuffle(numbers)  # randomize numbers for unique solutions
+
+    for num in numbers:
+        if is_valid(board, row, col, num):
+            board[row][col] = num
+
+            if solve_sudoku(board):
+                return True
+
+            board[row][col] = 0  # backtrack
+    return False
+
+
+def find_empty_location(board):
+    for i in range(9):
+        for j in range(9):
+            if board[i][j] == 0:
+                return i, j
+    return None
+
+
+def generate_sudoku():
+    board = np.zeros((9, 9), dtype=int)
+    solve_sudoku(board)
+    return board
+
+
 class KSudoku:
     def __init__(self, seed=SEED, mask_rate=RATE):
         self.seed = seed
@@ -68,37 +110,7 @@ class KSudoku:
         :return: the complete sudoku grid
         :rtype: Grid
         """
-        attempt = 1
-        if self.seed is not None:
-            np.random.seed(self.seed)
-
-        while True:
-            n = 9
-            g = np.zeros((n, n), np.uint)
-            rg = np.arange(1, n + 1)
-            g[0, :] = np.random.choice(rg, n, replace=False)
-
-            try:
-                for r in range(1, n):
-                    for c in range(n):
-                        col_rest = np.setdiff1d(rg, g[:r, c])
-                        row_rest = np.setdiff1d(rg, g[r, :c])
-                        avb1 = np.intersect1d(col_rest, row_rest)
-                        sub_r, sub_c = r // 3, c // 3
-                        avb2 = np.setdiff1d(np.arange(0, n + 1),
-                                            g[sub_r * 3:(sub_r + 1) * 3, sub_c * 3:(sub_c + 1) * 3].ravel())
-                        avb = np.intersect1d(avb1, avb2)
-                        g[r, c] = np.random.choice(avb, size=1)[0]
-                break
-            except ValueError:
-                attempt += 1
-
-        # Old return statement
-        # g_list: Grid = g.tolist()
-        # return g_list
-
-        # New return statement
-        return g
+        return generate_sudoku()
 
 
 class Cage:
@@ -342,7 +354,8 @@ class CageGenerator:
         for row in grid:
             print(" ".join(f"{value:>3}" for value in row))
 
-def to_array(cages : List[Cage]) -> np.ndarray:
+
+def to_array(cages: List[Cage]) -> np.ndarray:
     """
     Visualize the generated cages on the grid and return as an ndarray.
     :return: ndarray representing the grid with cages.
